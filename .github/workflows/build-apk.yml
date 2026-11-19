@@ -42,6 +42,20 @@ jobs:
             file "app/src/main/res/mipmap-${density}/ic_launcher_round.png" | grep -q 'PNG image data'
           done
 
+      - name: Validate embedded JavaScript syntax
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          source = Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script(?:\\s[^>]*)?>(.*?)</script>', source, flags=re.S)
+          if not scripts:
+              raise SystemExit('No inline JavaScript found')
+          Path('/tmp/tuvi-inline.js').write_text('\\n'.join(scripts), encoding='utf-8')
+          PY
+          node --check /tmp/tuvi-inline.js
+
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug
 
