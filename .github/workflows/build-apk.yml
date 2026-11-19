@@ -1,0 +1,57 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.4
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.4'
+
+      - name: Verify source and all launcher icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/src/main/assets/index.html
+          test -s app/src/main/java/com/lacviet/tuvi/MainActivity.java
+          test -s app/src/main/res/drawable-nodpi/ic_launcher_foreground.png
+          grep -q 'android:icon="@mipmap/ic_launcher"' app/src/main/AndroidManifest.xml
+          grep -q 'android:roundIcon="@mipmap/ic_launcher_round"' app/src/main/AndroidManifest.xml
+          for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            test -s "app/src/main/res/mipmap-${density}/ic_launcher.png"
+            test -s "app/src/main/res/mipmap-${density}/ic_launcher_round.png"
+            file "app/src/main/res/mipmap-${density}/ic_launcher.png" | grep -q 'PNG image data'
+            file "app/src/main/res/mipmap-${density}/ic_launcher_round.png" | grep -q 'PNG image data'
+          done
+
+      - name: Build debug APK
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Verify APK output
+        run: test -s app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tu-Vi-3-APK-v1.5
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
