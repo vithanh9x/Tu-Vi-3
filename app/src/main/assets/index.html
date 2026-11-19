@@ -1689,6 +1689,8 @@ function getTraditionalHourIndexFromTime(timeValue) {
         unlockedAll: false,
         selectedBranchIndex: 6,
         selectedPalaceId: 'menh',
+        selectedDaiVanBranchIndex: null,
+        selectedDaiVanAge: null,
         paymentTargetPalaceId: null,
         paymentSelectedPkg: '5k',
         useUploadedOriginalQr: true,
@@ -3338,7 +3340,22 @@ function getTraditionalHourIndexFromTime(timeValue) {
       }
 
       // Render 10-Chapter Master Deep Analysis Tab + Whole-Chart Huyền Khí + Đại Hạn / Tiểu Hạn
-      function renderDeepTab() {
+      function buildDaiVanYearDetailHtml(dv, d, age) {
+        const year = Number(d.profile.year) + Number(age) - 1;
+        const triadA = d.branches[(dv.branchIndex + 4) % 12], triadB = d.branches[(dv.branchIndex + 8) % 12], opposite = d.branches[(dv.branchIndex + 6) % 12];
+        const mainHtml = dv.mainStars.length ? dv.mainStars.map(st => interpretStarInPalace(st, dv)).join('') : '<p><strong>Vô Chính Diệu:</strong> Không có chính tinh tọa thủ; cần mượn chính tinh ở cung xung chiếu ' + opposite.cungName + ' và xét tam hợp ' + triadA.cungName + ' – ' + triadB.cungName + '.</p>';
+        const goodHtml = dv.goodSubStarsRaw.map(st => `<p><strong class='text-emerald-200'>✦ ${st.displayName || st.name} (${st.hanh || 'chưa rõ hành'}):</strong> ${SUB_STAR_ENCYCLOPEDIA[st.name] || 'Phụ tinh cần xét trong tổ hợp.'} Tại cung ${dv.cungName}, sao này bổ sung điều kiện thuận cho phương diện ${(PALACE_REAL_LIFE[dv.cungId] || dv.cungMeta.domain).toLowerCase()}, tùy chính tinh và hội chiếu.</p>`).join('') || '<p>Chưa ghi nhận cát tinh phụ trợ nổi bật trong dữ liệu hiện có.</p>';
+        const badHtml = dv.badSubStarsRaw.map(st => `<p><strong class='text-rose-200'>⚠ ${st.displayName || st.name} (${st.hanh || 'chưa rõ hành'}):</strong> ${SUB_STAR_ENCYCLOPEDIA[st.name] || 'Sao này cần xét trong toàn bộ tổ hợp, không phán hung riêng lẻ.'} Tại cung ${dv.cungName}, nên quản trị mặt thử thách trong phương diện ${(PALACE_REAL_LIFE[dv.cungId] || dv.cungMeta.domain).toLowerCase()}.</p>`).join('') || '<p>Chưa ghi nhận sát/hao tinh phụ trợ nổi bật trong dữ liệu hiện có.</p>';
+        const links = [triadA, triadB, opposite].map((x, i) => { const role = i === 2 ? 'Xung chiếu' : 'Tam hợp'; const mains = x.mainStars.map(st => st.name + ' (' + (st.status || 'Bình') + ')').join(', ') || 'Vô Chính Diệu'; return `<p><strong>${role} — cung ${x.cungName} (${x.branchName}):</strong> Chính tinh ${mains}; cát tinh ${x.goodSubStars.join(', ') || 'không ghi nhận'}; sát/hao tinh ${x.badSubStars.join(', ') || 'không ghi nhận'}. Cung này phản ánh ${(PALACE_REAL_LIFE[x.cungId] || x.cungMeta.domain).toLowerCase()}, tạo nguồn hỗ trợ hoặc sức ép liên đới đến cung đại vận ${dv.cungName}.</p>`; }).join('');
+        return `<div id='daiVanDetailPanel' class='p-4 sm:p-5 rounded-2xl bg-cosmic-950/90 border-2 border-amber-300/50 space-y-4'>
+          <div class='border-b border-amber-300/25 pb-3'><div class='text-[10px] font-extrabold text-emerald-300'>LUẬN GIẢI RIÊNG THEO MỐC TUỔI ĐÃ CHỌN</div><h4 class='font-serif text-lg font-extrabold text-amber-200 mt-1'>Năm ${year} • ${age} tuổi mụ • Đại vận ${dv.daiVan}–${dv.daiVan + 9} tuổi</h4><p class='text-xs text-amber-50/85'>Đại vận nhập cung <strong>${dv.cungName} (${dv.branchName}, ${dv.palaceCanChi})</strong> • Điểm cung ${dv.fortuneScore}/100 • Trường Sinh: <strong>${dv.truongSinhName}</strong></p><div class='grid grid-cols-5 gap-1.5 text-[10px] mt-2'><span>M: Miếu</span><span>V: Vượng</span><span>Đ: Đắc</span><span>B: Bình</span><span>H: Hãm</span></div></div>
+          <div><h5 class='font-bold text-amber-200 mb-2'>1. Chính tinh và trạng thái sáng/tối</h5>${mainHtml}</div>
+          <div class='grid grid-cols-1 md:grid-cols-2 gap-3'><div class='p-3 rounded-xl bg-emerald-950/35 border border-emerald-400/30 space-y-2'><h5 class='font-bold text-emerald-300'>2. Phụ tinh tốt</h5>${goodHtml}</div><div class='p-3 rounded-xl bg-rose-950/35 border border-rose-400/30 space-y-2'><h5 class='font-bold text-rose-300'>3. Phụ tinh thử thách</h5>${badHtml}</div></div>
+          <div><h5 class='font-bold text-amber-200 mb-2'>4. Kết hợp chính tinh + phụ tinh + Trường Sinh</h5><p class='text-xs text-amber-50/90'>Trường Sinh tại cung ${dv.cungName} là <strong>${dv.truongSinhName}</strong>. Khi chính tinh thuận và được cát tinh nâng đỡ, chủ đề đại vận có thêm điều kiện phát triển; nếu chính tinh hãm hoặc sát/hao tinh cùng tác động, mặt khó khăn dễ lộ rõ hơn. Trường Sinh không tự quyết định tốt/xấu. ${dv.hasTuan ? 'Có Tuần án tại cung.' : 'Không ghi nhận Tuần tại cung.'} ${dv.hasTriet ? 'Có Triệt án tại cung.' : 'Không ghi nhận Triệt tại cung.'}</p></div>
+          <div><h5 class='font-bold text-amber-200 mb-2'>5. Tam phương tứ chính và hội chiếu</h5>${links}</div>
+          <div class='p-3 rounded-xl bg-amber-400/10 border border-amber-300/30 text-xs text-amber-50/90'><strong class='text-amber-200'>6. Luận riêng mốc năm ${year}:</strong> Mốc này nằm trong đại vận tại cung ${dv.cungName}; phần trên phân tích nền sao gốc và các cung liên hệ. Dữ liệu hiện tại chưa an riêng đầy đủ sao lưu niên, Tứ Hóa lưu niên và lưu nguyệt cho từng năm được chọn, vì vậy không tự gán sự kiện chắc chắn hoặc kết luận tháng nào tốt/xấu.</div></div>`;
+      }
+function renderDeepTab() {
         const d = state.chartData;
         if (!d) return;
         const honorific = getHonorific(d);
@@ -3421,23 +3438,18 @@ function getTraditionalHourIndexFromTime(timeValue) {
 
         // 12-Step Đại Vận (10-year periods) sorted chronologically
         const daiVanSorted = [...d.branches].sort((a, c) => a.daiVan - c.daiVan);
-        const daiVanCardsHtml = daiVanSorted
-          .map(dv => {
-            const isCurrent = d.tuoiMu >= dv.daiVan && d.tuoiMu <= dv.daiVan + 9;
-            const dvStars = dv.mainStars.map(s => `${s.name}(${s.status})`).join(', ') || 'Vô Chính Diệu';
-            return `
-              <div class="p-2.5 rounded-xl ${isCurrent ? 'bg-amber-400/20 border-2 border-amber-300' : 'bg-black/40 border border-amber-300/20'}">
-                <div class="flex items-center justify-between text-[11px] font-extrabold">
-                  <span class="${isCurrent ? 'text-amber-200' : 'text-amber-100'}">${dv.daiVan} - ${dv.daiVan + 9} tuổi ${isCurrent ? '★ ĐANG Ở ĐẠI VẬN NÀY' : ''}</span>
-                  <span class="text-emerald-300">${dv.fortuneScore}đ</span>
-                </div>
-                <div class="text-[11px] text-amber-50/90 mt-0.5">Tại cung <strong>${dv.cungName} (${dv.palaceCanChi})</strong> • ${dvStars}</div>
-                <div class="text-[10px] text-emerald-200/80 mt-0.5">Trường Sinh: ${dv.truongSinhName} • ${dv.goodSubStars.slice(0, 2).join(', ')}</div>
-              </div>
-            `;
-          })
-          .join('');
-
+        const currentDaiVan = huyenKhi.currentDaiVanBranch || daiVanSorted[0];
+        const selectedDaiVan = daiVanSorted.find(x => x.branchIndex === state.selectedDaiVanBranchIndex) || currentDaiVan;
+        state.selectedDaiVanBranchIndex = selectedDaiVan.branchIndex;
+        const selectedAgeValid = Number.isInteger(state.selectedDaiVanAge) && state.selectedDaiVanAge >= selectedDaiVan.daiVan && state.selectedDaiVanAge <= selectedDaiVan.daiVan + 9;
+        const selectedDaiVanAge = selectedAgeValid ? state.selectedDaiVanAge : Math.max(selectedDaiVan.daiVan, Math.min(selectedDaiVan.daiVan + 9, d.tuoiMu)); state.selectedDaiVanAge = selectedDaiVanAge;
+        const daiVanYearButtonsHtml = Array.from({ length: 10 }, (_, idx) => { const age = selectedDaiVan.daiVan + idx; const year = Number(d.profile.year) + age - 1; const active = age === selectedDaiVanAge; return `<button type='button' data-dai-van-age='${age}' class='p-2 rounded-lg border text-center text-[11px] font-bold ${active ? 'bg-amber-300 text-slate-950 border-white' : 'bg-black/35 text-amber-100 border-amber-300/25'}'><span class='block'>${year}</span><span class='block opacity-80'>${age} tuổi mụ</span></button>`; }).join('');
+        const selectedDaiVanDetailHtml = buildDaiVanYearDetailHtml(selectedDaiVan, d, selectedDaiVanAge);
+        const daiVanCardsHtml = daiVanSorted.map(dv => {
+          const isCurrent = d.tuoiMu >= dv.daiVan && d.tuoiMu <= dv.daiVan + 9, isSelected = dv.branchIndex === selectedDaiVan.branchIndex;
+          const dvStars = dv.mainStars.map(s => `${s.name}(${s.status})`).join(', ') || 'Vô Chính Diệu';
+          return `<button type='button' data-dai-van-branch='${dv.branchIndex}' class='w-full text-left p-2.5 rounded-xl transition ${isSelected ? 'bg-amber-400/20 border-2 border-amber-300' : 'bg-black/40 border border-amber-300/20 hover:border-amber-200'}'><div class='flex items-center justify-between text-[11px] font-extrabold'><span class='${isCurrent ? 'text-amber-200' : 'text-amber-100'}'>${dv.daiVan} - ${dv.daiVan + 9} tuổi ${isCurrent ? '★ ĐANG Ở ĐẠI VẬN NÀY' : ''} ${isSelected ? '• ĐANG XEM' : ''}</span><span class='text-emerald-300'>${dv.fortuneScore}đ</span></div><div class='text-[11px] text-amber-50/90 mt-0.5'>Tại cung <strong>${dv.cungName} (${dv.palaceCanChi})</strong> • ${dvStars}</div><div class='text-[10px] text-emerald-200/80 mt-0.5'>Trường Sinh: ${dv.truongSinhName} • ${dv.goodSubStars.slice(0, 2).join(', ')}</div><div class='text-[10px] text-amber-200 mt-1 font-bold'>Chạm để xem phân tích chu kỳ và từng năm ↗</div></button>`;
+        }).join('');
         const tieuHanB = d.branches[d.viewYearBranch];
         const tieuHanStars = tieuHanB.mainStars.map(s => `${s.name}(${s.status})`).join(', ') || 'Vô Chính Diệu';
 
@@ -3498,7 +3510,7 @@ function getTraditionalHourIndexFromTime(timeValue) {
                 <div class="text-xs font-extrabold text-amber-200 mb-2">Toàn Cảnh 12 Chu Kỳ Đại Vận / Đại Hạn Trọn Đời:</div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   ${daiVanCardsHtml}
-                </div>
+                </div><div class='mt-4 p-3 rounded-2xl bg-black/30 border border-amber-300/25'><div class='text-xs font-extrabold text-amber-200 mb-2'>Chọn năm cụ thể trong chu kỳ ${selectedDaiVan.daiVan}–${selectedDaiVan.daiVan + 9} tuổi</div><div class='grid grid-cols-5 sm:grid-cols-10 gap-1.5'>${daiVanYearButtonsHtml}</div><p class='text-[10px] text-amber-100/70 mt-2'>Chọn một năm để xem luận giải theo tuổi mụ và cung đại vận. Năm dương lịch được ước tính từ năm sinh đã nhập.</p></div><div class='mt-4'>${selectedDaiVanDetailHtml}</div>
               </div>
             </div>
 
@@ -3548,6 +3560,8 @@ function getTraditionalHourIndexFromTime(timeValue) {
             </div>
           </div>
         `;
+        contentEl.querySelectorAll('[data-dai-van-branch]').forEach(btn => btn.addEventListener('click', () => { state.selectedDaiVanBranchIndex = Number(btn.dataset.daiVanBranch); const next = daiVanSorted.find(x => x.branchIndex === state.selectedDaiVanBranchIndex); state.selectedDaiVanAge = next ? Math.max(next.daiVan, Math.min(next.daiVan + 9, d.tuoiMu)) : null; renderDeepTab(); setTimeout(() => document.getElementById('daiVanDetailPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }));
+        contentEl.querySelectorAll('[data-dai-van-age]').forEach(btn => btn.addEventListener('click', () => { state.selectedDaiVanAge = Number(btn.dataset.daiVanAge); renderDeepTab(); setTimeout(() => document.getElementById('daiVanDetailPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }));
       }
 
       // Luận sao theo đúng cung đang tọa thủ: biểu hiện thực tế, mặt thuận/nghịch và cách ứng xử.
@@ -3577,24 +3591,23 @@ function getTraditionalHourIndexFromTime(timeValue) {
         'Thiên Cơ|Cự Môn':'Thiên Cơ tính toán và tìm phương án, Cự Môn phân tích và chất vấn. Bộ sao mạnh về nghiên cứu, tư vấn, chiến lược và xử lý vấn đề; mặt trái là suy nghĩ quá nhiều hoặc tranh luận kéo dài.',
         'Thiên Tướng|Thiên Phủ':'Thiên Tướng thiên về trách nhiệm và tín nhiệm, Thiên Phủ thiên về quản trị và bảo toàn. Tổ hợp nhấn mạnh vai trò điều hành, giữ quy củ và phân bổ nguồn lực; dễ chậm quyết nếu quá thận trọng.'
       };
+      function getStarBrightnessInfo(status) {
+        const raw = String(status || 'Bình').trim(); const key = raw.toLocaleUpperCase('vi-VN');
+        if (key === 'M' || key.includes('MIẾU')) return { label: 'Miếu địa (M)', meaning: 'Vị trí rất phù hợp với tính chất sao; sở trường dễ phát huy rõ. Vẫn phải xét sát tinh, Tứ Hóa, Tuần–Triệt và cung hội chiếu.' };
+        if (key === 'V' || key.includes('VƯỢNG')) return { label: 'Vượng địa (V)', meaning: 'Khí thế mạnh, biểu hiện tương đối rõ và có điều kiện phát huy; không đồng nghĩa mọi việc thuộc cung đều thuận.' };
+        if (key === 'Đ' || key === 'Ð' || key.includes('ĐẮC')) return { label: 'Đắc địa (Đ)', meaning: 'Vị trí tương đối thích hợp, giúp sao phát huy phần sở trường; cần xét chính tinh đồng cung và phụ tinh.' };
+        if (key === 'H' || key.includes('HÃM')) return { label: 'Hãm địa (H)', meaning: 'Tính chất sao dễ biểu hiện lệch, vướng hoặc thiếu ổn định; cần xét cát tinh hỗ trợ, tam hợp, xung chiếu và Tuần–Triệt.' };
+        return { label: 'Bình hòa (B)', meaning: 'Trung tính, tác động phụ thuộc nhiều vào tổ hợp sao, vị trí cung và vận hạn.' };
+      }
       function interpretStarInPalace(st, b) {
-        const status = st.status || 'Bình';
-        const bright = /Miếu|Vượng|Đắc|M|V|Đ/.test(status);
-        const weak = /Hãm|H/.test(status);
-        const condition = bright
-          ? 'Ở trạng thái sáng, tính chất nguyên bản của sao dễ bộc lộ thành năng lực có thể sử dụng được; khi gặp cát tinh thì thành ưu thế rõ, nhưng vẫn phải xét sát tinh và Tuần–Triệt.'
-          : weak
-            ? 'Ở trạng thái hãm, mặt mạnh của sao không mất nhưng thường biểu hiện vòng vèo, quá mức hoặc thiếu ổn định; cần xét cứu giải, tam hợp và xung chiếu trước khi kết luận.'
-            : 'Ở trạng thái bình hòa, sao không tự tạo ưu thế tuyệt đối; hiệu quả phụ thuộc bộ sao đi cùng, vị trí tam hợp và vận hạn kích hoạt.';
+        const status = st.status || 'Bình'; const info = getStarBrightnessInfo(status);
         const palaceMeaning = PALACE_REAL_LIFE[b.cungId] || b.cungMeta.domain.toLowerCase();
         const description = st.desc || MAIN_STARS_META[st.name]?.desc || SUB_STAR_ENCYCLOPEDIA[st.name] || 'Tính chất sao cần được đọc trong toàn bộ tổ hợp.';
         const psych = st.psych || MAIN_STARS_META[st.name]?.psych || '';
-        const good = b.goodSubStars.map(x => x.name || x).filter(Boolean);
-        const bad = b.badSubStars.map(x => x.name || x).filter(Boolean);
-        return `<p><strong>${st.name} (${status}) đóng tại ${b.cungName} – ${b.branchName}:</strong> ${description} ${psych} Tại cung này, sao tác động trực tiếp đến ${palaceMeaning}. ${condition} ${good.length ? `Các sao nâng đỡ đang đồng cung/hội tụ gồm ${good.join(', ')}, giúp biểu hiện tích cực có điều kiện phát huy.` : 'Bản cung không có danh sách cát tinh phụ trợ nổi bật trong dữ liệu hiện tại.'} ${bad.length ? `Điểm cần kiểm soát là ${bad.join(', ')}: chúng khiến mặt bất lợi dễ xuất hiện qua va chạm, trì hoãn, hao tổn hoặc quyết định thiếu cân nhắc tùy bản chất từng sao.` : 'Dữ liệu bản cung không ghi nhận sát/hao tinh phụ trợ nổi bật.'}</p>`;
+        const good = b.goodSubStars.map(x => x.name || x).filter(Boolean); const bad = b.badSubStars.map(x => x.name || x).filter(Boolean);
+        return `<p><strong>${st.name} — ${info.label}, đóng tại cung ${b.cungName} (${b.branchName}):</strong> ${description} ${psych} Tại đây sao tác động đến ${palaceMeaning}. <strong>Ý nghĩa trạng thái:</strong> ${info.meaning} ${good.length ? `Cát tinh nâng đỡ gồm ${good.join(', ')}, có thể giúp sở trường biểu hiện thuận hơn.` : 'Chưa ghi nhận cát tinh phụ trợ nổi bật tại bản cung.'} ${bad.length ? `Các sao cần quản trị gồm ${bad.join(', ')}, có thể làm tăng va chạm, trì hoãn hoặc hao tổn tùy bản chất từng sao.` : 'Chưa ghi nhận sát/hao tinh phụ trợ nổi bật tại bản cung.'}</p>`;
       }
 
-      
       // Deep, chart-specific premium analysis. The text is composed from the actual
       // palace, star positions, brightness, four transformations and four-direction links.
       function buildExpandedPalaceAnalysis(b, d, tamHop1, tamHop2, xungChieu, giapTruoc, giapSau) {
@@ -3876,6 +3889,14 @@ function getTraditionalHourIndexFromTime(timeValue) {
             `Kết luận cuối của ma trận: cung ${b.cungName} được đánh giá ở mức ${scoreBand} theo chỉ số nội bộ ${b.fortuneScore}/100, nhưng mức điểm không phải định mệnh và không thể thay thế dữ kiện đời sống. Điểm mạnh nằm ở những yếu tố có thể chuyển thành năng lực cụ thể; điểm yếu nằm ở những thói quen hoặc điều kiện cần quản trị; cơ hội nằm ở sự kết hợp giữa nguồn lực và thời điểm; rủi ro nằm ở phần chưa được kiểm soát. Người đọc nên dùng phần tổng quan này như bản đồ suy ngẫm, sau đó kiểm nghiệm bằng trải nghiệm, dữ kiện và lựa chọn có trách nhiệm.`
           ]
         });
+        sections.push({ title: 'Tổng hợp tương tác: chính tinh + cát tinh + sát/hao tinh + Trường Sinh + hội chiếu', paragraphs: [
+          `Trục chính của cung ${b.cungName} là ${brightSummary}. Trạng thái Miếu (M), Vượng (V), Đắc (Đ), Bình (B) hoặc Hãm (H) phải đọc riêng cho từng sao. ${b.mainStars.length ? b.mainStars.map(st => { const si = getStarBrightnessInfo(st.status); return st.name + ' ở ' + si.label + ': ' + si.meaning; }).join(' ') : 'Bản cung Vô Chính Diệu: cần mượn chính tinh ở cung xung chiếu ' + xungChieu.cungName + ' và kiểm tra hai cung tam hợp.'}`,
+          `Cát tinh tại bản cung gồm ${goodNames.join(', ') || 'chưa ghi nhận cát tinh phụ trợ nổi bật'}. Chúng bổ sung điều kiện thuận theo ý nghĩa từng sao, không thay thế chính tinh. Khi cát tinh đi cùng chính tinh thuận, sở trường có thêm điều kiện phát huy; nếu chính tinh hãm hoặc gặp Tuần/Triệt, không mặc định cát tinh xóa hết trở ngại.`,
+          `Sát/hao tinh gồm ${badNames.join(', ') || 'chưa ghi nhận sát/hao tinh nổi bật'}. Không cộng dồn chúng thành kết luận xấu tuyệt đối. Nếu cùng tác động lên điểm yếu của chính tinh, vấn đề của cung ${b.cungName} dễ lộ hơn; cát tinh hoặc cung tam hợp nâng đỡ có thể điều tiết nhưng không đồng nghĩa hóa giải hoàn toàn.`,
+          `Vòng Trường Sinh tại cung này là ${b.truongSinhName}. Trường Sinh mô tả trạng thái khí và nhịp phát triển của cung; phải đặt cạnh chính tinh, phụ tinh, Tuần–Triệt để hiểu sắc thái khởi đầu, tích lũy, chín muồi hay cần thời gian. Không dùng Trường Sinh đơn lẻ để kết luận cát hung, sức khỏe hoặc tuổi thọ.`,
+          `Tam hợp gồm ${tamHop1.cungName} (${tamHop1.mainStars.map(st => st.name + '(' + st.status + ')').join(', ') || 'Vô Chính Diệu'}) và ${tamHop2.cungName} (${tamHop2.mainStars.map(st => st.name + '(' + st.status + ')').join(', ') || 'Vô Chính Diệu'}); xung chiếu là ${xungChieu.cungName} (${xungChieu.mainStars.map(st => st.name + '(' + st.status + ')').join(', ') || 'Vô Chính Diệu'}). Tam hợp cho biết nền hỗ trợ; xung chiếu cho thấy trục đối diện, sức ép hoặc điều kiện bên ngoài. Phải đọc sao theo chủ đề riêng của từng cung, không chuyển nguyên ý nghĩa sang bản cung.`,
+          `Kết luận kết hợp cho ${b.cungName}: khi chính tinh, cát tinh và Trường Sinh cùng thuận, hai cung tam hợp và cung xung chiếu không tạo xung đột lớn, chủ đề cung có thêm điều kiện phát triển. Nếu chính tinh ở thế khó, sát/hao tinh hội tụ hoặc cung chiếu bất lợi, kết quả cần thêm thời gian, kỷ luật và phương án dự phòng. Khi các lớp trái chiều, phải nêu rõ yếu tố nâng đỡ và cản trở thay vì chỉ chấm tốt/xấu.`
+        ] });
         return sections;
       }
 

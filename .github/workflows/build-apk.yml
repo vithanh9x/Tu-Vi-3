@@ -51,7 +51,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Tu-Vi-3-APK-v1.5
+          name: Tu-Vi-3-APK-v1.6
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
